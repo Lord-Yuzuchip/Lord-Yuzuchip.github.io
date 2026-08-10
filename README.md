@@ -1,1 +1,0 @@
-# Lord-Yuzuchip.github.io
