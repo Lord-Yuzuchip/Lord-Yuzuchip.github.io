@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/https://github.com/Lord-Yuzuchip/Lord-Yuzuchip.github.io/',
+  base: '/Lord-Yuzuchip.github.io',
   plugins: [
     react(),
     tailwindcss(),
