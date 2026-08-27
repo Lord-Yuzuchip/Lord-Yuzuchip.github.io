@@ -32,7 +32,7 @@ function SearchBar({ onSearch, onRandom, loading }) {
         disabled={loading}
         className="text-sm text-gray-400 hover:text-amber-400 disabled:opacity-50 transition-colors underline underline-offset-2"
       >
-        or show me a random card
+        or show me a random legal card
       </button>
     </div>
   )

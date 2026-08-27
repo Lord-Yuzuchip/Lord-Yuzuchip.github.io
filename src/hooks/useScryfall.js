@@ -3,9 +3,21 @@ import { useState, useCallback } from 'react'
 // How long to wait between API calls (Scryfall asks for politeness)
 const DELAY_MS = 1000
 
+const MSRP = 5.49
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const mainQuery = "game:paper (is:core or is:expansion or is:tangoland or is:bicycleland) not:melded not:ub date>=8ed date<=sos -set:tsb"
 
-export function useScryfall() {
+function filterByPrice(data, getPrice){
+  const tempCards = []
+  for (const point of data.data){
+    if (getPrice(point.name)<=0.37){
+      tempCards.push(point)
+    }
+  }
+  return tempCards
+}
+
+export function useScryfall(getPrice) {
   const [cards, setCards] = useState([])       // the array of card results
   const [loading, setLoading] = useState(false) // true while fetching
   const [loadingMore, setLoadingMore] = useState(false) //true while doing later searches for big queries
@@ -13,9 +25,10 @@ export function useScryfall() {
   const [totalCards, setTotalCards] = useState(0) //remember total cards from search
   const [nextPage, setNextPage] = useState(null) //url for the next page, or null when small search
 
+
   const searchCards = useCallback(async (query) => {
     if (!query.trim()) return // don't search on empty input
-    query = "(" + query + ") date>=8ed (is:core or is:expansion or is:tangoland or is:bicycleland) game:paper not:ub is:new not:melded"
+    query = "(" + query + ") " + mainQuery
 
     setLoading(true)
     setError(null)
@@ -34,8 +47,10 @@ export function useScryfall() {
         setError(data.details || 'No cards found.')
         setCards([])
       } else {
-        setCards(data.data)
-        console.log(data.data[0].prints_search_uri)
+        const filteredCards = filterByPrice(data, getPrice)
+        setCards(filteredCards)
+        // console.log(data.data[0])
+        // console.log(data.data[0].prints_search_uri)
         setTotalCards(data.total_cards)
         setNextPage(data.has_more ? data.next_page : null)
       }
@@ -59,7 +74,8 @@ export function useScryfall() {
       const data = await response.json()
 
       if (data.object !== 'error') {
-        setCards(prev => [...prev, ...data.data])
+        const filteredCards = filterByPrice(data, getPrice)
+        setCards(prev => [...prev, ...filteredCards])
         setNextPage(data.has_more ? data.next_page : null)
       }
 
@@ -77,8 +93,7 @@ export function useScryfall() {
     setNextPage(null)
     try {
       await delay(DELAY_MS)
-      const randomQuery = "game:paper (is:core or is:expansion or is:tangoland or is:bicycleland) not:melded not:ub date>=8ed date<=sos"
-      let url = `https://api.scryfall.com/cards/random?q=${encodeURIComponent(randomQuery)}&order=name`
+      let url = `https://api.scryfall.com/cards/random?q=${encodeURIComponent(mainQuery)}&order=name`
       const response = await fetch(url)
       const card = await response.json()
       setCards([card])
