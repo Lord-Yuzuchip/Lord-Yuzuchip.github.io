@@ -77,7 +77,9 @@ export function useScryfall() {
     setNextPage(null)
     try {
       await delay(DELAY_MS)
-      const response = await fetch('https://api.scryfall.com/cards/random')
+      const randomQuery = "game:paper (is:core or is:expansion or is:tangoland or is:bicycleland) not:melded not:ub date>=8ed date<=sos"
+      let url = `https://api.scryfall.com/cards/random?q=${encodeURIComponent(randomQuery)}&order=name`
+      const response = await fetch(url)
       const card = await response.json()
       setCards([card])
       setTotalCards(1)
