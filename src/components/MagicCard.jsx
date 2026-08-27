@@ -10,7 +10,7 @@ function MagicCard({ card, getPrice }) {
     card.card_faces?.[0]?.mana_cost ||
     ''
 
-  const cachedPrice = getPrice(card.name)
+  const cachedPrice = getPrice(card.name).toFixed(2)
 
   return (
     <div className="group relative flex flex-col rounded-xl overflow-hidden bg-gray-900 border border-gray-700 hover:border-amber-400 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-900/30">
