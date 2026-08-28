@@ -8,10 +8,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const mainQuery = "game:paper (is:core or is:expansion or is:tangoland or is:bicycleland) not:melded not:ub date>=8ed date<=sos -set:tsb"
 
 function filterByPrice(data, getPrice){
-  const tempCards = []
+  let tempCards = []
   for (const point of data.data){
     if (getPrice(point.name)<=0.37){
-      tempCards.push(point)
+      tempCards = [...tempCards, point]
     }
   }
   return tempCards
@@ -48,7 +48,7 @@ export function useScryfall(getPrice) {
         setCards([])
       } else {
         const filteredCards = filterByPrice(data, getPrice)
-        setCards(filteredCards)
+        setCards([...filteredCards])
         // console.log(data.data[0])
         // console.log(data.data[0].prints_search_uri)
         setTotalCards(data.total_cards)
