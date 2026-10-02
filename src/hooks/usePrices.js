@@ -18,5 +18,5 @@ export function usePrices() {
     return prices[cardName] ?? null
   }, [prices])
 
-  return { getPrice, loading }
+  return { prices, getPrice, loading }
 }
