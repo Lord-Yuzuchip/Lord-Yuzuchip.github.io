@@ -5,7 +5,7 @@ const DELAY_MS = 1000
 
 const MSRP = 5.49
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-const mainQuery = "game:paper (is:core or is:expansion or is:tangoland or is:bicycleland) not:melded not:ub date>=8ed date<=sos -set:tsb"
+const mainQuery = "game:paper (is:core or is:expansion or is:tangoland or is:bicycleland) not:melded not:ub date>=8ed date<=fra -set:tsb"
 
 function filterByPrice(data, getPrice){
   let tempCards = []
