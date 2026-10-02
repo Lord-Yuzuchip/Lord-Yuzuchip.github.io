@@ -10,7 +10,8 @@ const mainQuery = "game:paper (is:core or is:expansion or is:tangoland or is:bic
 function filterByPrice(data, getPrice){
   let tempCards = []
   for (const point of data.data){
-    if (getPrice(point.name)<=0.37){
+    const price = getPrice(point.name)
+    if (price !== null && price<=0.37){
       tempCards = [...tempCards, point]
     }
   }
