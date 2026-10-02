@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 const BACKEND_URL = 'http://localhost:3001'
 
@@ -14,9 +14,9 @@ export function usePrices() {
       .finally(() => setLoading(false))
   }, []) // runs once when the app first loads
 
-  function getPrice(cardName) {
+  const getPrice = useCallback((cardName) => {
     return prices[cardName] ?? null
-  }
+  }, [prices])
 
   return { getPrice, loading }
 }

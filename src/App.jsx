@@ -5,7 +5,7 @@ import { usePrices } from './hooks/usePrices'
 
 function App() {
   const { getPrice } = usePrices()
-  const { cards, loading, loadingMore, error, totalCards, hasMore, searchCards, loadMoreCards, loadRandomCard } = useScryfall(getPrice)
+  const { cards, loading, loadingMore, error, hasMore, searchCards, loadMoreCards, loadRandomCard } = useScryfall(getPrice)
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -32,7 +32,6 @@ function App() {
           loading={loading}
           loadingMore={loadingMore}
           error={error}
-          totalCards={totalCards}
           hasMore={hasMore}
           onLoadMoreCards={loadMoreCards}
           getPrice={getPrice}

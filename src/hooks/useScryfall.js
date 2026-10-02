@@ -4,6 +4,8 @@ import { useState, useCallback } from 'react'
 const DELAY_MS = 1000
 
 const MSRP = 5.49
+const BOOSTER_SIZE = 14
+export const PRICE_LIMIT = MSRP / BOOSTER_SIZE
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const mainQuery = "game:paper (is:core or is:expansion or is:tangoland or is:bicycleland) not:melded not:ub date>=8ed date<=fra -set:tsb"
 
@@ -11,7 +13,7 @@ function filterByPrice(data, getPrice){
   let tempCards = []
   for (const point of data.data){
     const price = getPrice(point.name)
-    if (price !== null && price<=0.37){
+    if (price !== null && price<=PRICE_LIMIT){
       tempCards = [...tempCards, point]
     }
   }
@@ -61,7 +63,7 @@ export function useScryfall(getPrice) {
     } finally {
         setLoading(false)
     }
-  }, [])
+  }, [getPrice])
 
   const loadMoreCards = useCallback(async () => {
     if (!nextPage) return
@@ -86,7 +88,7 @@ export function useScryfall(getPrice) {
     } finally {
         setLoadingMore(false)
     }
-  }, [nextPage])
+  }, [nextPage, getPrice])
 
   const loadRandomCard = useCallback(async () => {
     setLoading(true)

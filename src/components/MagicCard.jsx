@@ -1,3 +1,5 @@
+import { PRICE_LIMIT } from '../hooks/useScryfall'
+
 function MagicCard({ card, getPrice }) {
   // Some cards have two faces (e.g. transform cards) — handle both cases
   const imageUrl =
@@ -37,7 +39,7 @@ function MagicCard({ card, getPrice }) {
             {card.name}
           </h3>
           {cachedPrice && (
-            <span className={`text-xs shrink-0 font-mono ${parseFloat(cachedPrice) > 5.49/14 ? 'text-red-400' : 'text-emerald-400'}`}>
+            <span className={`text-xs shrink-0 font-mono ${parseFloat(cachedPrice) > PRICE_LIMIT ? 'text-red-400' : 'text-emerald-400'}`}>
               {cachedPrice} €
             </span>
           )}

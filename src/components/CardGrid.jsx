@@ -1,6 +1,6 @@
 import MagicCard from './MagicCard'
 
-function CardGrid({ cards, loading, loadingMore, error, totalCards, hasMore, onLoadMoreCards, getPrice }) {
+function CardGrid({ cards, loading, loadingMore, error, hasMore, onLoadMoreCards, getPrice }) {
   // Loading state — show placeholder shimmer cards
   if (loading) {
     return (
@@ -39,7 +39,8 @@ function CardGrid({ cards, loading, loadingMore, error, totalCards, hasMore, onL
   return (
     <div>
       <p className="text-gray-500 text-sm mb-4">
-        Showing {cards.length} results
+        {/* the filtered total is only known once every page has been loaded */}
+        Showing {cards.length} of {hasMore ? '???' : cards.length} cards
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
         {cards.map((card) => (
