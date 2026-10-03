@@ -1,10 +1,19 @@
+import { useState } from 'react'
 import { PRICE_LIMIT } from '../hooks/useScryfall'
 
 function MagicCard({ card, getPrice }) {
-  // Some cards have two faces (e.g. transform cards) — handle both cases
+  const [showBack, setShowBack] = useState(false)
+
+  // Double sided cards (e.g. transform cards) have an image per face instead of one for the whole card.
+  // Split and adventure cards have two faces but only one image, so they can't be flipped.
+  const faceImages = card.image_uris
+    ? []
+    : (card.card_faces ?? []).map((face) => face.image_uris?.normal).filter(Boolean)
+  const isDoubleSided = faceImages.length > 1
+
   const imageUrl =
     card.image_uris?.normal ||
-    card.card_faces?.[0]?.image_uris?.normal ||
+    faceImages[showBack ? 1 : 0] ||
     null
 
   const manaCost =
@@ -17,11 +26,21 @@ function MagicCard({ card, getPrice }) {
   return (
     <div className="group relative flex flex-col rounded-xl overflow-hidden bg-gray-900 border border-gray-700 hover:border-amber-400 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-900/30">
       {/* Card image */}
-      <div className="aspect-5/7 bg-gray-800 overflow-hidden">
+      <div className="relative aspect-5/7 bg-gray-800 overflow-hidden">
+        {isDoubleSided && (
+          <button
+            onClick={() => setShowBack(!showBack)}
+            title={showBack ? 'Show front side' : 'Show back side'}
+            aria-label={showBack ? 'Show front side' : 'Show back side'}
+            className="absolute bottom-1 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center rounded-full bg-gray-950/80 hover:bg-amber-500 text-white hover:text-black text-sm border border-gray-600 hover:border-amber-400 backdrop-blur-sm transition-colors"
+          >
+            ⟲
+          </button>
+        )}
         {imageUrl ? (
           <img
             src={imageUrl}
-            alt={card.name}
+            alt={isDoubleSided ? card.card_faces[showBack ? 1 : 0].name : card.name}
             className="w-full h-full object-cover"
             loading="lazy"
           />
