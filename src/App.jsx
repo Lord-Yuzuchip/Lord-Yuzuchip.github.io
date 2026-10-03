@@ -13,7 +13,7 @@ const TABS = [
 function App() {
   const [tab, setTab] = useState('search')
   const { prices, getPrice, loading: pricesLoading } = usePrices()
-  const { cards, loading, loadingMore, error, hasMore, searchCards, loadMoreCards, loadRandomCard } = useScryfall(getPrice)
+  const { cards, loading, loadingMore, error, hasMore, hasSearched, searchCards, loadMoreCards, loadRandomCard } = useScryfall(getPrice, prices)
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -58,6 +58,7 @@ function App() {
             loadingMore={loadingMore}
             error={error}
             hasMore={hasMore}
+            hasSearched={hasSearched}
             onLoadMoreCards={loadMoreCards}
             getPrice={getPrice}
           />

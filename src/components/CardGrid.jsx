@@ -1,6 +1,29 @@
+import { useEffect, useRef } from 'react'
 import MagicCard from './MagicCard'
 
-function CardGrid({ cards, loading, loadingMore, error, hasMore, onLoadMoreCards, getPrice }) {
+// how close (in pixels) the load more button must be to the bottom of the screen before it triggers
+const AUTO_LOAD_DISTANCE = 800
+
+function CardGrid({ cards, loading, loadingMore, error, hasMore, hasSearched, onLoadMoreCards, getPrice }) {
+  const loadMoreRef = useRef(null)
+
+  // automatically "click" load more when the button gets close to the screen
+  useEffect(() => {
+    const button = loadMoreRef.current
+    if (!button || loadingMore) return
+
+    // re-created after every load, and fires right away if the button is still close
+    // (e.g. when the price filter removed most of the last page)
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) onLoadMoreCards()
+      },
+      { rootMargin: `0px 0px ${AUTO_LOAD_DISTANCE}px 0px` }
+    )
+    observer.observe(button)
+    return () => observer.disconnect()
+  }, [hasMore, loadingMore, loading, error, cards.length, onLoadMoreCards])
+
   // Loading state — show placeholder shimmer cards
   if (loading) {
     return (
@@ -27,11 +50,20 @@ function CardGrid({ cards, loading, loadingMore, error, hasMore, onLoadMoreCards
     )
   }
 
-  // Empty state (before any search)
+  // Empty state (before any search, or every result was filtered out)
   if (cards.length === 0) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-500 text-lg">Search for a card to get started.</p>
+        {hasSearched ? (
+          <>
+            <p className="text-gray-400 text-lg">No cards found.</p>
+            <p className="text-gray-500 text-sm mt-2">
+              No legal cards matching your search are within the price limit.
+            </p>
+          </>
+        ) : (
+          <p className="text-gray-500 text-lg">Search for a card to get started.</p>
+        )}
       </div>
     )
   }
@@ -50,7 +82,8 @@ function CardGrid({ cards, loading, loadingMore, error, hasMore, onLoadMoreCards
 
       {hasMore && (
       <div className="flex justify-center mt-10">
-        <button 
+        <button
+          ref={loadMoreRef}
           onClick={onLoadMoreCards}
           disabled={loadingMore}
           className="px-8 py-3 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg border border-gray-600 hover:border-gray-400 transition-all"
