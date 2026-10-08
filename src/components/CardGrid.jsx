@@ -4,7 +4,7 @@ import MagicCard from './MagicCard'
 // how close (in pixels) the load more button must be to the bottom of the screen before it triggers
 const AUTO_LOAD_DISTANCE = 800
 
-function CardGrid({ cards, loading, loadingMore, error, hasMore, hasSearched, onLoadMoreCards, getPrice }) {
+function CardGrid({ cards, loading, loadingMore, error, hasMore, hasSearched, onLoadMoreCards, onSelectCard, isLegal }) {
   const loadMoreRef = useRef(null)
 
   // automatically "click" load more when the button gets close to the screen
@@ -50,8 +50,9 @@ function CardGrid({ cards, loading, loadingMore, error, hasMore, hasSearched, on
     )
   }
 
-  // Empty state (before any search, or every result was filtered out)
-  if (cards.length === 0) {
+  // Empty state (before any search, or every result was filtered out).
+  // If there are more pages, show the normal view instead so load more triggers and keeps looking
+  if (cards.length === 0 && !hasMore) {
     return (
       <div className="text-center py-20">
         {hasSearched ? (
@@ -76,7 +77,7 @@ function CardGrid({ cards, loading, loadingMore, error, hasMore, hasSearched, on
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
         {cards.map((card) => (
-          <MagicCard key={card.id} card={card} getPrice={getPrice} />
+          <MagicCard key={card.id} card={card} onSelect={onSelectCard} isLegal={isLegal(card.name)} />
         ))}
       </div>
 

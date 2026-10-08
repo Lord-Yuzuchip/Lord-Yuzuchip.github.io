@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { PRICE_LIMIT } from '../hooks/useScryfall'
 
-function MagicCard({ card, getPrice }) {
+function MagicCard({ card, onSelect, isLegal }) {
   const [showBack, setShowBack] = useState(false)
 
   // Double sided cards (e.g. transform cards) have an image per face instead of one for the whole card.
@@ -16,20 +15,28 @@ function MagicCard({ card, getPrice }) {
     faceImages[showBack ? 1 : 0] ||
     null
 
-  const manaCost =
-    card.mana_cost ||
-    card.card_faces?.[0]?.mana_cost ||
-    ''
-
-  const cachedPrice = getPrice(card.name)?.toFixed(2)
-
   return (
-    <div className="group relative flex flex-col rounded-xl overflow-hidden bg-gray-900 border border-gray-700 hover:border-amber-400 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-900/30">
-      {/* Card image */}
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Show details for ${card.name}`}
+      onClick={() => onSelect(card)}
+      onKeyDown={(e) => { if (e.key === 'Enter') onSelect(card) }}
+      className={`cursor-pointer group relative rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:ring-2 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-2 ${
+        // outline shows whether the card is legal or too expensive
+        isLegal
+          ? 'hover:ring-emerald-400 hover:shadow-emerald-900/30 focus-visible:ring-emerald-400'
+          : 'hover:ring-red-500 hover:shadow-red-900/30 focus-visible:ring-red-500'
+      }`}
+    >
+      {/* Card image (name, price etc. are in the card details) */}
       <div className="relative aspect-5/7 bg-gray-800 overflow-hidden">
         {isDoubleSided && (
           <button
-            onClick={() => setShowBack(!showBack)}
+            onClick={(e) => {
+              e.stopPropagation() // only flip, don't also open the card details
+              setShowBack(!showBack)
+            }}
             title={showBack ? 'Show front side' : 'Show back side'}
             aria-label={showBack ? 'Show front side' : 'Show back side'}
             className="absolute bottom-1 left-1/2 -translate-x-1/2 w-7 h-7 flex items-center justify-center rounded-full bg-gray-950/80 hover:bg-amber-500 text-white hover:text-black text-sm border border-gray-600 hover:border-amber-400 backdrop-blur-sm transition-colors"
@@ -48,24 +55,6 @@ function MagicCard({ card, getPrice }) {
           <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
             No image available
           </div>
-        )}
-      </div>
-
-      {/* Card info below the image */}
-      <div className="p-3 flex flex-col gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-white text-sm leading-tight">
-            {card.name}
-          </h3>
-          {cachedPrice && (
-            <span className={`text-xs shrink-0 font-mono ${parseFloat(cachedPrice) > PRICE_LIMIT ? 'text-red-400' : 'text-emerald-400'}`}>
-              {cachedPrice} €
-            </span>
-          )}
-        </div>
-        <p className="text-xs text-gray-400 leading-tight">{card.type_line}</p>
-        {card.set_name && (
-          <p className="text-xs text-gray-600 mt-1">{card.set_name}</p>
         )}
       </div>
     </div>

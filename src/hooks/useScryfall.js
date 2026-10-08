@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { NEWEST_SET } from '../config'
 
 // How long to wait between API calls (Scryfall asks for politeness)
 const DELAY_MS = 1000
@@ -6,24 +7,27 @@ const DELAY_MS = 1000
 // how many cards "show me some random legal cards" displays
 const RANDOM_COUNT = 10
 
-const MSRP = 5.49
-const BOOSTER_SIZE = 14
-export const PRICE_LIMIT = MSRP / BOOSTER_SIZE
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-const mainQuery = "game:paper (is:core or is:expansion or is:tangoland or is:bicycleland) not:melded not:ub date>=8ed date<=fra -set:tsb"
+// sort orders the user can pick, as Scryfall's "order" values
+export const SORT_OPTIONS = [
+  { value: 'name', label: 'Name' },
+  { value: 'released', label: 'Release date' },
+  { value: 'rarity', label: 'Rarity' },
+  { value: 'color', label: 'Color' },
+  { value: 'cmc', label: 'Mana value' },
+  { value: 'power', label: 'Power' },
+  { value: 'toughness', label: 'Toughness' },
+]
 
-function filterByPrice(data, getPrice){
-  let tempCards = []
-  for (const point of data.data){
-    const price = getPrice(point.name)
-    if (price !== null && price<=PRICE_LIMIT){
-      tempCards = [...tempCards, point]
-    }
-  }
-  return tempCards
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const mainQuery = `game:paper (in:core or in:expansion or is:tangoland or is:bicycleland) not:melded not:ub date>=8ed date<=${NEWEST_SET} -set:tsb`
+
+// keeps cards that are in the price files. Whether too expensive cards are shown is decided when displaying,
+// so the "show expensive" toggle works instantly without searching again
+function filterInPriceFiles(data, cardStatus){
+  return data.data.filter((card) => card.name in cardStatus)
 }
 
-export function useScryfall(getPrice, prices) {
+export function useScryfall(cardStatus) {
   const [cards, setCards] = useState([])       // the array of card results
   const [loading, setLoading] = useState(false) // true while fetching
   const [loadingMore, setLoadingMore] = useState(false) //true while doing later searches for big queries
@@ -33,7 +37,11 @@ export function useScryfall(getPrice, prices) {
   const [hasSearched, setHasSearched] = useState(false) //false until the first search, to tell "no results" from "not searched yet"
 
 
-  const searchCards = useCallback(async (query) => {
+  const searchCards = useCallback(async (query, order = 'name', dir = 'asc') => {
+    // sorting goes in its own url parameters, never in the query text, and only known values are allowed
+    if (!SORT_OPTIONS.some((option) => option.value === order)) order = 'name'
+    if (dir !== 'asc' && dir !== 'desc') dir = 'asc'
+
     if (!query.trim()) return // don't search on empty input
     query = "(" + query + ") " + mainQuery
 
@@ -45,7 +53,7 @@ export function useScryfall(getPrice, prices) {
     try {
       await delay(DELAY_MS)
 
-      const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&order=name`
+      const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&order=${order}&dir=${dir}`
       const response = await fetch(url)
       let data = await response.json()
 
@@ -55,15 +63,15 @@ export function useScryfall(getPrice, prices) {
         setCards([])
       } else {
         setTotalCards(data.total_cards)
-        let filteredCards = filterByPrice(data, getPrice)
+        let filteredCards = filterInPriceFiles(data, cardStatus)
 
-        // if the price filter removed the whole page, keep going until something is left or there are no more pages
+        // if the whole page was filtered out, keep going until something is left or there are no more pages
         while (filteredCards.length === 0 && data.has_more) {
           await delay(DELAY_MS)
           const nextResponse = await fetch(data.next_page)
           data = await nextResponse.json()
           if (data.object === 'error') break
-          filteredCards = filterByPrice(data, getPrice)
+          filteredCards = filterInPriceFiles(data, cardStatus)
         }
 
         setCards([...filteredCards])
@@ -76,7 +84,7 @@ export function useScryfall(getPrice, prices) {
     } finally {
         setLoading(false)
     }
-  }, [getPrice])
+  }, [cardStatus])
 
   const loadMoreCards = useCallback(async () => {
     if (!nextPage) return
@@ -90,7 +98,7 @@ export function useScryfall(getPrice, prices) {
       const data = await response.json()
 
       if (data.object !== 'error') {
-        const filteredCards = filterByPrice(data, getPrice)
+        const filteredCards = filterInPriceFiles(data, cardStatus)
         setCards(prev => [...prev, ...filteredCards])
         setNextPage(data.has_more ? data.next_page : null)
       }
@@ -101,21 +109,21 @@ export function useScryfall(getPrice, prices) {
     } finally {
         setLoadingMore(false)
     }
-  }, [nextPage, getPrice])
+  }, [nextPage, cardStatus])
 
-  const loadRandomCard = useCallback(async () => {
+  const loadRandomCard = useCallback(async (includeExpensive = false) => {
     setLoading(true)
     setError(null)
     setNextPage(null)
     try {
       await delay(DELAY_MS)
 
-      // pick random names that already pass the price check from prices.json,
+      // pick random names from the price files (only legal ones unless includeExpensive),
       // then fetch them all in one request instead of one request per card
-      const cheapNames = Object.keys(prices).filter((name) => prices[name] !== null && prices[name] <= PRICE_LIMIT)
+      const names = Object.keys(cardStatus).filter((name) => includeExpensive || cardStatus[name].legal)
       const picked = new Set()
-      while (picked.size < Math.min(RANDOM_COUNT, cheapNames.length)) {
-        picked.add(cheapNames[Math.floor(Math.random() * cheapNames.length)])
+      while (picked.size < Math.min(RANDOM_COUNT, names.length)) {
+        picked.add(names[Math.floor(Math.random() * names.length)])
       }
 
       const response = await fetch('https://api.scryfall.com/cards/collection', {
@@ -139,7 +147,7 @@ export function useScryfall(getPrice, prices) {
     } finally {
       setLoading(false)
     }
-  }, [prices])
+  }, [cardStatus])
 
   return { cards, loading, loadingMore, error, totalCards, hasMore: nextPage!==null, hasSearched, searchCards, loadMoreCards, loadRandomCard }
 }

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { PRICE_LIMIT } from '../hooks/useScryfall'
+import { PRICE_LIMIT, BAN_LIMIT, PRICE_FILE_SETS } from '../config'
 import { parseDecklist, buildNameIndex, checkDeck } from '../utils/decklist'
 
 function ResultSection({ title, description, cards, showPrice }) {
@@ -17,9 +17,25 @@ function ResultSection({ title, description, cards, showPrice }) {
             <span className="text-white">
               <span className="text-gray-500 font-mono mr-2">{card.count}</span>
               {card.name}
+              {card.group && (
+                <span
+                  className="ml-2 px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-300 text-xs whitespace-nowrap"
+                  title="Legality uses the average price of this group"
+                >
+                  {card.group}
+                </span>
+              )}
             </span>
             {showPrice && (
-              <span className="font-mono text-red-400 shrink-0">{card.price.toFixed(2)} €</span>
+              card.group ? (
+                // for grouped cards the group average decides, the card's own price is just for reference
+                <span className="shrink-0 text-right font-mono text-xs leading-tight">
+                  <span className="block text-red-400 text-sm">avg {card.groupPrice.toFixed(2)} €</span>
+                  <span className="block text-gray-500">own {card.price !== null ? `${card.price.toFixed(2)} €` : '-'}</span>
+                </span>
+              ) : (
+                <span className="font-mono text-red-400 shrink-0">{card.price.toFixed(2)} €</span>
+              )
             )}
           </li>
         ))}
@@ -28,17 +44,17 @@ function ResultSection({ title, description, cards, showPrice }) {
   )
 }
 
-function DeckChecker({ prices, loading }) {
+function DeckChecker({ cardStatus, loading }) {
   const [decklist, setDecklist] = useState('')
   const [result, setResult] = useState(null)
 
   // rebuilding the name lookup on every check would be slow with ~20,000 cards
-  const nameIndex = useMemo(() => buildNameIndex(prices), [prices])
+  const nameIndex = useMemo(() => buildNameIndex(cardStatus), [cardStatus])
 
   function handleCheck() {
     const deck = parseDecklist(decklist)
     const totalCards = deck.reduce((sum, card) => sum + card.count, 0)
-    setResult({ ...checkDeck(deck, prices, nameIndex), uniqueCards: deck.length, totalCards })
+    setResult({ ...checkDeck(deck, cardStatus, nameIndex), uniqueCards: deck.length, totalCards })
   }
 
   const allGood = result && result.tooExpensive.length === 0 && result.notLegal.length === 0 && result.noPrice.length === 0
@@ -65,7 +81,8 @@ function DeckChecker({ prices, loading }) {
       {result && (
         <div className="flex flex-col gap-4">
           <p className="text-gray-500 text-sm">
-            Checked {result.totalCards} cards ({result.uniqueCards} unique) against a limit of {PRICE_LIMIT.toFixed(2)} €
+            Checked {result.totalCards} cards ({result.uniqueCards} unique). A card becomes legal at or below {PRICE_LIMIT.toFixed(2)} € in
+            one of the last {PRICE_FILE_SETS.length} sets' price lists, and stays legal until it goes above {BAN_LIMIT.toFixed(2)} € in a later one.
           </p>
 
           {allGood && (
@@ -76,7 +93,7 @@ function DeckChecker({ prices, loading }) {
 
           <ResultSection
             title="Over the price limit"
-            description={`Cheapest printing costs more than ${PRICE_LIMIT.toFixed(2)} €.`}
+            description="Not legal under the price rules. The price shown is the newest one."
             cards={result.tooExpensive}
             showPrice
           />

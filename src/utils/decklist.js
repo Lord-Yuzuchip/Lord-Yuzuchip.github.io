@@ -1,5 +1,3 @@
-import { PRICE_LIMIT } from '../hooks/useScryfall'
-
 // Lines that are section headers rather than cards (MTGA, Moxfield, MTGO exports)
 const SECTION_HEADERS = /^(deck|main ?deck|mainboard|sideboard|commander|companion|maybeboard|about|name\s.*)\s*:?$/i
 
@@ -44,14 +42,14 @@ export function parseDecklist(text) {
   return [...cards.values()]
 }
 
-// lookup from normalized name to the real name in prices.json, for full names and front faces
-export function buildNameIndex(prices) {
+// lookup from normalized name to the real card name, for full names and front faces
+export function buildNameIndex(cardStatus) {
   const index = new Map()
-  for (const realName of Object.keys(prices)) {
+  for (const realName of Object.keys(cardStatus)) {
     index.set(normalizeName(realName), realName)
   }
   // front faces second, so they never override a card whose full name matches
-  for (const realName of Object.keys(prices)) {
+  for (const realName of Object.keys(cardStatus)) {
     if (realName.includes(' // ')) {
       const front = normalizeName(realName.split(' // ')[0])
       if (!index.has(front)) {
@@ -62,7 +60,8 @@ export function buildNameIndex(prices) {
   return index
 }
 
-export function checkDeck(deck, prices, nameIndex) {
+// cardStatus comes from usePrices: name -> { price, legal }
+export function checkDeck(deck, cardStatus, nameIndex) {
   const tooExpensive = []
   const notLegal = []
   const noPrice = []
@@ -71,13 +70,22 @@ export function checkDeck(deck, prices, nameIndex) {
     const realName = nameIndex.get(normalizeName(card.name))
     if (realName === undefined) {
       notLegal.push(card)
-    } else if (prices[realName] === null) {
+      continue
+    }
+    const { price, legal } = cardStatus[realName]
+    if (legal) continue
+    // grouped cards are judged on their group's average price (the newest set's rulePrice)
+    const group = cardStatus[realName].group
+    const groupPrice = group ? cardStatus[realName].history.at(-1).rulePrice : null
+
+    if (price === null && groupPrice === null) {
       noPrice.push({ ...card, name: realName })
-    } else if (prices[realName] > PRICE_LIMIT) {
-      tooExpensive.push({ ...card, name: realName, price: prices[realName] })
+    } else {
+      tooExpensive.push({ ...card, name: realName, price, group: group?.name, groupPrice })
     }
   }
 
-  tooExpensive.sort((a, b) => b.price - a.price)
+  // most expensive first, by the price that decides legality
+  tooExpensive.sort((a, b) => (b.groupPrice ?? b.price) - (a.groupPrice ?? a.price))
   return { tooExpensive, notLegal, noPrice }
 }
